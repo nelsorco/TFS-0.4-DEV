@@ -21,31 +21,35 @@
 #ifndef __LOGIN_SERVER__
 
 typedef std::list<std::string> Characters;
+
 #else
-class GameServer; // 106
-struct Character // 106
+
+class GameServer;
+struct Character
 {
-	Character(): server(NULL), status(0) {} // 106
-	Character(const std::string& _name, GameServer* _server, int8_t _status): // 106
-		name(_name), server(_server), status(_status) {} // 106
+	Character(): server(NULL), status(0) {}
+	Character(const std::string& _name, GameServer* _server, int8_t _status):
+		name(_name), server(_server), status(_status) {}
 
-	std::string name; // 106
-	GameServer* server; // 106
-	int8_t status; // 106
-}; // 106
+	std::string name;
+	GameServer* server;
+	int8_t status;
+};
 
-typedef std::map<std::string, Character> Characters; // 106
+typedef std::map<std::string, Character> Characters;
 
 #endif
-class Account
+
+class Account 
 {
 	public:
-		Account() {number = premiumDays = lastDay = warnings = 0;}
+		Account() {premiumDays = warnings = number = lastDay = 0;}
 		virtual ~Account() {charList.clear();}
 
-		uint32_t number, premiumDays, lastDay; // uint16_t premiumDays, warnings;
-		int32_t warnings; // uint32_t number, lastDay;
+		uint16_t premiumDays, warnings;
+		uint32_t number, lastDay;
 		std::string name, password, recoveryKey, salt;
 		Characters charList;
 };
+
 #endif
