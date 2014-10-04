@@ -1,19 +1,7 @@
 ////////////////////////////////////////////////////////////////////////
 // OpenTibia - an opensource roleplaying game
 ////////////////////////////////////////////////////////////////////////
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-////////////////////////////////////////////////////////////////////////
+
 #ifdef __OTADMIN__
 #include "otpch.h"
 #include <iostream>
@@ -92,7 +80,9 @@ void ProtocolAdmin::parsePacket(NetworkMessage& msg)
 	uint8_t recvbyte = msg.get<char>();
 	OutputMessage_ptr output = OutputMessagePool::getInstance()->getOutputMessage(this, false);
 	if(!output)
+	{
 		return;
+	}
 
 	TRACK_MESSAGE(output);
 	switch(m_state)
@@ -120,7 +110,9 @@ void ProtocolAdmin::parsePacket(NetworkMessage& msg)
 				}
 			}
 			else
+			{
 				m_state = NO_LOGGED_IN;
+			}
 
 			break;
 		}
@@ -160,13 +152,17 @@ void ProtocolAdmin::parsePacket(NetworkMessage& msg)
 				}
 			}
 			else
+			{
 				m_state = LOGGED_IN;
+			}
 
 			break;
 		}
 
 		case LOGGED_IN:
+		{
 			break;
+		}
 
 		default:
 		{
@@ -327,9 +323,13 @@ void ProtocolAdmin::parsePacket(NetworkMessage& msg)
 				case CMD_SAVE_SERVER:
 				case CMD_SHALLOW_SAVE_SERVER:
 				{
+					uint8_t flags = (uint8_t)SAVE_PLAYERS | (uint8_t)SAVE_MAP | (uint8_t)SAVE_STATE;
+					if(command == CMD_SHALLOW_SAVE_SERVER)
+					{
+						flags |= SAVE_PLAYERS_SHALLOW;
+					}
 					addLogLine(LOGTYPE_EVENT, "saving server");
-					Dispatcher::getInstance().addTask(createTask(boost::bind(
-						&Game::saveGameState, &g_game, (command == CMD_SHALLOW_SAVE_SERVER))));
+					Dispatcher::getInstance().addTask(createTask(boost::bind(&Game::saveGameState, &g_game, flags)));
 
 					output->put<char>(AP_MSG_COMMAND_OK);
 					break;
@@ -338,8 +338,7 @@ void ProtocolAdmin::parsePacket(NetworkMessage& msg)
 				case CMD_CLOSE_SERVER:
 				{
 					addLogLine(LOGTYPE_EVENT, "closing server");
-					Dispatcher::getInstance().addTask(createTask(boost::bind(
-						&Game::setGameState, &g_game, GAMESTATE_CLOSED)));
+					Dispatcher::getInstance().addTask(createTask(boost::bind(&Game::setGameState, &g_game, GAMESTATE_CLOSED)));
 
 					output->put<char>(AP_MSG_COMMAND_OK);
 					break;
@@ -357,8 +356,7 @@ void ProtocolAdmin::parsePacket(NetworkMessage& msg)
 				case CMD_SHUTDOWN_SERVER:
 				{
 					addLogLine(LOGTYPE_EVENT, "shutting down server");
-					Dispatcher::getInstance().addTask(createTask(boost::bind(
-						&Game::setGameState, &g_game, GAMESTATE_SHUTDOWN)));
+					Dispatcher::getInstance().addTask(createTask(boost::bind(&Game::setGameState, &g_game, GAMESTATE_SHUTDOWN)));
 
 					output->put<char>(AP_MSG_COMMAND_OK);
 					break;
@@ -366,33 +364,28 @@ void ProtocolAdmin::parsePacket(NetworkMessage& msg)
 
 				case CMD_PAY_HOUSES:
 				{
-					Dispatcher::getInstance().addTask(createTask(boost::bind(
-						&ProtocolAdmin::adminCommandPayHouses, this)));
+					Dispatcher::getInstance().addTask(createTask(boost::bind(&ProtocolAdmin::adminCommandPayHouses, this)));
 					break;
 				}
 
 				case CMD_RELOAD_SCRIPTS:
 				{
 					const int8_t reload = msg.get<char>();
-					Dispatcher::getInstance().addTask(createTask(boost::bind(
-						&ProtocolAdmin::adminCommandReload, this, reload)));
+					Dispatcher::getInstance().addTask(createTask(boost::bind(&ProtocolAdmin::adminCommandReload, this, reload)));
 					break;
 				}
 
-				// why do we run these below on dispatcher thread anyway?
 				case CMD_KICK:
 				{
 					const std::string param = msg.getString();
-					Dispatcher::getInstance().addTask(createTask(boost::bind(
-						&ProtocolAdmin::adminCommandKickPlayer, this, param)));
+					Dispatcher::getInstance().addTask(createTask(boost::bind(&ProtocolAdmin::adminCommandKickPlayer, this, param)));
 					break;
 				}
 
 				case CMD_SEND_MAIL:
 				{
 					const std::string xmlData = msg.getString();
-					Dispatcher::getInstance().addTask(createTask(boost::bind(
-						&ProtocolAdmin::adminCommandSendMail, this, xmlData)));
+					Dispatcher::getInstance().addTask(createTask(boost::bind(&ProtocolAdmin::adminCommandSendMail, this, xmlData)));
 					break;
 				}
 
@@ -400,8 +393,7 @@ void ProtocolAdmin::parsePacket(NetworkMessage& msg)
 				{
 					const std::string param = msg.getString();
 					addLogLine(LOGTYPE_EVENT, "broadcasting: " + param);
-					Dispatcher::getInstance().addTask(createTask(boost::bind(
-						&Game::broadcastMessage, &g_game, param, MSG_STATUS_WARNING)));
+					Dispatcher::getInstance().addTask(createTask(boost::bind(&Game::broadcastMessage, &g_game, param, MSG_STATUS_WARNING)));
 
 					output->put<char>(AP_MSG_COMMAND_OK);
 					break;
@@ -435,21 +427,34 @@ void ProtocolAdmin::parsePacket(NetworkMessage& msg)
 	}
 
 	if(output->size() > 0)
+	{
 		OutputMessagePool::getInstance()->send(output);
+	}
 }
 
-void ProtocolAdmin::deleteProtocolTask()
+void ProtocolAdmin::releaseProtocol()
 {
 	addLogLine(LOGTYPE_EVENT, "end connection");
 	Admin::getInstance()->removeConnection();
+	Protocol::releaseProtocol();
+}
+
+#ifdef __DEBUG_NET_DETAIL__
+void ProtocolAdmin::deleteProtocolTask()
+{
+	std::clog << "Deleting ProtocolAdmin" << std::endl;
 	Protocol::deleteProtocolTask();
 }
+
+#endif
 
 void ProtocolAdmin::adminCommandPayHouses()
 {
 	OutputMessage_ptr output = OutputMessagePool::getInstance()->getOutputMessage(this, false);
 	if(!output)
+	{
 		return;
+	}
 
 	Houses::getInstance()->payHouses();
 	addLogLine(LOGTYPE_EVENT, "pay houses ok");
@@ -463,7 +468,9 @@ void ProtocolAdmin::adminCommandReload(int8_t reload)
 {
 	OutputMessage_ptr output = OutputMessagePool::getInstance()->getOutputMessage(this, false);
 	if(!output)
+	{
 		return;
+	}
 
 	g_game.reloadInfo((ReloadInfo_t)reload);
 	addLogLine(LOGTYPE_EVENT, "reload ok");
@@ -477,7 +484,9 @@ void ProtocolAdmin::adminCommandKickPlayer(const std::string& param)
 {
 	OutputMessage_ptr output = OutputMessagePool::getInstance()->getOutputMessage(this, false);
 	if(!output)
+	{
 		return;
+	}
 
 	TRACK_MESSAGE(output);
 	Player* player = NULL;
@@ -501,7 +510,9 @@ void ProtocolAdmin::adminCommandSendMail(const std::string& xmlData)
 {
 	OutputMessage_ptr output = OutputMessagePool::getInstance()->getOutputMessage(this, false);
 	if(!output)
+	{
 		return;
+	}
 
 	std::string name;
 	uint32_t depotId;
@@ -531,8 +542,7 @@ void ProtocolAdmin::adminCommandSendMail(const std::string& xmlData)
 	OutputMessagePool::getInstance()->send(output);
 }
 
-Admin::Admin(): m_currrentConnections(0), m_encrypted(false),
-	m_key_RSA1024XTEA(NULL)
+Admin::Admin(): m_currentConnections(0), m_encrypted(false), m_key_RSA1024XTEA(NULL)
 {
 	std::string strValue = g_config.getString(ConfigManager::ADMIN_ENCRYPTION);
 	if(!strValue.empty())
@@ -541,15 +551,16 @@ Admin::Admin(): m_currrentConnections(0), m_encrypted(false),
 		if(strValue == "rsa1024xtea")
 		{
 			m_key_RSA1024XTEA = new RSA();
-			if(!m_key_RSA1024XTEA->initialize(getFilePath(FILE_TYPE_CONFIG,
-				g_config.getString(ConfigManager::ADMIN_ENCRYPTION_DATA))))
+			if(!m_key_RSA1024XTEA->initialize(getFilePath(FILE_TYPE_CONFIG, g_config.getString(ConfigManager::ADMIN_ENCRYPTION_DATA))))
 			{
 				std::clog << "[Warning - Admin::Admin] Unable to set RSA1024XTEA key!" << std::endl;
 				delete m_key_RSA1024XTEA;
 				m_key_RSA1024XTEA = NULL;
 			}
 			else
+			{
 				m_encrypted = true;
+			}
 		}
 	}
 }
@@ -562,27 +573,35 @@ Admin::~Admin()
 
 bool Admin::addConnection()
 {
-	if(m_currrentConnections >= g_config.getNumber(ConfigManager::ADMIN_CONNECTIONS_LIMIT))
+	if(m_currentConnections >= g_config.getNumber(ConfigManager::ADMIN_CONNECTIONS_LIMIT))
+	{
 		return false;
+	}
 
-	m_currrentConnections++;
+	m_currentConnections++;
 	return true;
 }
 
 void Admin::removeConnection()
 {
-	if(m_currrentConnections > 0)
-		m_currrentConnections--;
+	if(m_currentConnections > 0)
+	{
+		m_currentConnections--;
+	}
 }
 
 uint16_t Admin::getPolicy() const
 {
 	uint16_t policy = 0;
 	if(g_config.getBool(ConfigManager::ADMIN_REQUIRE_LOGIN))
+	{
 		policy |= REQUIRE_LOGIN;
+	}
 
 	if(m_encrypted)
+	{
 		policy |= REQUIRE_ENCRYPTION;
+	}
 
 	return policy;
 }
@@ -593,7 +612,9 @@ uint32_t Admin::getOptions() const
 	if(m_encrypted)
 	{
 		if(m_key_RSA1024XTEA)
+		{
 			ret |= ENCRYPTION_RSA1024XTEA;
+		}
 	}
 
 	return ret;
@@ -603,32 +624,44 @@ Item* Admin::createMail(const std::string xmlData, std::string& name, uint32_t& 
 {
 	xmlDocPtr doc = xmlParseMemory(xmlData.c_str(), xmlData.length());
 	if(!doc)
+	{
 		return NULL;
+	}
 
 	xmlNodePtr root = xmlDocGetRootElement(doc);
 	if(xmlStrcmp(root->name,(const xmlChar*)"mail"))
+	{
 		return NULL;
+	}
 
 	int32_t intValue;
 	std::string strValue;
 
 	int32_t itemId = ITEM_PARCEL;
 	if(readXMLString(root, "to", strValue))
+	{
 		name = strValue;
+	}
 
 	if(readXMLString(root, "town", strValue))
 	{
 		Town* town = Towns::getInstance()->getTown(strValue);
 		if(!town)
+		{
 			return false;
+		}
 
 		depotId = town->getID();
 	}
 	else if(!IOLoginData::getInstance()->getDefaultTownByName(name, depotId)) //use the players default town
+	{
 		return false;
+	}
 
 	if(readXMLInteger(root, "id", intValue))
+	{
 		itemId = intValue;
+	}
 
 	Item* mailItem = Item::CreateItem(itemId);
 	mailItem->setParent(VirtualCylinder::virtualCylinder);
@@ -659,13 +692,19 @@ Item* Admin::createMail(const std::string xmlData, std::string& name, uint32_t& 
 bool Admin::allow(uint32_t ip) const
 {
 	if(!g_config.getBool(ConfigManager::ADMIN_LOCALHOST_ONLY))
+	{
 		return !ConnectionManager::getInstance()->isDisabled(ip, 0xFE);
+	}
 
 	if(ip == 0x0100007F) //127.0.0.1
+	{
 		return true;
+	}
 
 	if(g_config.getBool(ConfigManager::ADMIN_LOGS))
+	{
 		LOG_MESSAGE(LOGTYPE_EVENT, "forbidden connection try", "ADMIN " + convertIPAddress(ip));
+	}
 
 	return false;
 }
@@ -675,10 +714,14 @@ RSA* Admin::getRSAKey(uint8_t type)
 	switch(type)
 	{
 		case ENCRYPTION_RSA1024XTEA:
+		{
 			return m_key_RSA1024XTEA;
+		}
 
 		default:
+		{
 			break;
+		}
 	}
 
 	return NULL;
@@ -687,6 +730,9 @@ RSA* Admin::getRSAKey(uint8_t type)
 void ProtocolAdmin::addLogLine(LogType_t type, std::string message)
 {
 	if(g_config.getBool(ConfigManager::ADMIN_LOGS))
+	{
 		LOG_MESSAGE(type, message, "ADMIN " + convertIPAddress(getIP()))
+	}
 }
+
 #endif
