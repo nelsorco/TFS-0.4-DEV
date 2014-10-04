@@ -1,19 +1,6 @@
-////////////////////////////////////////////////////////////////////////
-// OpenTibia - an opensource roleplaying game
-////////////////////////////////////////////////////////////////////////
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////
+// OpenTibia - an opensource roleplaying game  //
+/////////////////////////////////////////////////
 
 #ifdef __OTSERV_ALLOCATOR__
 #ifndef __ALLOCATOR__
@@ -84,9 +71,11 @@ void operator delete(void* p);
 void operator delete[](void* p);
 
 #ifdef _MSC_VER
+void* operator new[](size_t bytes, int32_t dummy)
 void operator delete(void* p, int32_t dummy);
 void operator delete[](void* p, int32_t dummy);
 #endif
+
 #ifdef __OTSERV_ALLOCATOR_STATS__
 void allocatorStatsThread(void* a);
 #endif
@@ -116,10 +105,13 @@ class PoolManager
 					poolTag* tag = reinterpret_cast<poolTag*>(it->second->malloc());
 					#ifdef __OTSERV_ALLOCATOR_STATS__
 					if(!tag)
+					{
 						dumpStats();
-
+					}
 					#endif
+					
 					tag->poolbytes = it->first;
+					
 					#ifdef __OTSERV_ALLOCATOR_STATS__
 					poolsStats[it->first]->allocations++;
 					poolsStats[it->first]->unused+= it->first - (size + sizeof(poolTag));
@@ -131,11 +123,12 @@ class PoolManager
 			}
 
 			poolTag* tag = reinterpret_cast<poolTag*>(std::malloc(size + sizeof(poolTag)));
+			
 			#ifdef __OTSERV_ALLOCATOR_STATS__
 			poolsStats[0]->allocations++;
 			poolsStats[0]->unused += size;
-
 			#endif
+			
 			tag->poolbytes = 0;
 			poolLock.unlock();
 			return tag + 1;
@@ -144,7 +137,9 @@ class PoolManager
 		void deallocate(void* deletable)
 		{
 			if(!deletable)
+			{
 				return;
+			}
 
 			poolTag* const tag = reinterpret_cast<poolTag*>(deletable) - 1U;
 			poolLock.lock();
@@ -154,6 +149,7 @@ class PoolManager
 				it = pools.find(tag->poolbytes);
 
 				it->second->free(tag);
+				
 				#ifdef __OTSERV_ALLOCATOR_STATS__
 				poolsStats[it->first]->deallocations++;
 				#endif
@@ -161,6 +157,7 @@ class PoolManager
 			else
 			{
 				std::free(tag);
+				
 				#ifdef __OTSERV_ALLOCATOR_STATS__
 				poolsStats[0]->deallocations++;
 				#endif
@@ -217,8 +214,8 @@ class PoolManager
 		void addPool(size_t size, size_t nextSize)
 		{
 			pools[size] = new(0) boost::pool<boost::default_user_allocator_malloc_free>(size, nextSize);
+			
 			#ifdef __OTSERV_ALLOCATOR_STATS__
-
 			t_PoolStats * tmp = new(0) t_PoolStats;
 			tmp->unused = tmp->allocations = tmp->deallocations = 0;
 			poolsStats[size] = tmp;
@@ -252,8 +249,7 @@ class PoolManager
 		PoolManager(const PoolManager&);
 		const PoolManager& operator=(const PoolManager&);
 
-		typedef std::map<size_t, boost::pool<boost::default_user_allocator_malloc_free >*, std::less<size_t >,
-			dummyallocator<std::pair<const size_t, boost::pool<boost::default_user_allocator_malloc_free>* > > > Pools;
+		typedef std::map<size_t, boost::pool<boost::default_user_allocator_malloc_free >*, std::less<size_t >, dummyallocator<std::pair<const size_t, boost::pool<boost::default_user_allocator_malloc_free>* > > > Pools;
 		Pools pools;
 
 		#ifdef __OTSERV_ALLOCATOR_STATS__
@@ -264,9 +260,11 @@ class PoolManager
 
 		typedef std::map<size_t, t_PoolStats*, std::less<size_t >, dummyallocator<std::pair<const size_t, t_PoolStats* > > > PoolsStats;
 		PoolsStats poolsStats;
-
 		#endif
+		
 		boost::recursive_mutex poolLock;
 };
+
 #endif
+
 #endif
