@@ -1,19 +1,6 @@
-////////////////////////////////////////////////////////////////////////
-// OpenTibia - an opensource roleplaying game
-////////////////////////////////////////////////////////////////////////
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////
+// OpenTibia - an opensource roleplaying game  //
+/////////////////////////////////////////////////
 
 #ifndef __ADMIN__
 #define __ADMIN__
@@ -22,61 +9,6 @@
 
 #include "protocol.h"
 #include "textlogger.h"
-
-// -> server
-// command(1 byte) | size(2 bytes) | parameters(size bytes)
-// commands:
-//	login
-//		password(string)
-//  encryption
-//		encryption type(1 byte)
-//			RSA1024+XTEA
-//				:128 bytes encrypted using 1024 bytes public key
-//				16 bytes XTEA key
-//  key-exchange
-//		public_key_type(1 byte)
-//			RSA1024+XTEA
-//  command
-//		command + paramters(string)
-//	no_operation/ping
-//		nothing
-//
-// <- server
-// ret-code(1 byte)| size(2 bytes) | parameters(size bytes)
-// ret-codes:
-//	hello
-//		server_version(4 bytes)
-//		server_string(string)
-//		security_policy(2 bytes flags)
-//			required_login
-//			required_encryption
-//		accepted_encryptions(4 bytes flags)
-//			RSA1024+XTEA
-//	key-exchange-ok
-//		public_key_type(1 byte)
-//			RSA1024+XTEA
-//				:128 bytes public key modulus
-//	key-exchange-failed
-//		reason(string)
-//  login-ok
-//		nothing
-//  login-failed
-//		reason(string)
-//  command-ok
-//		command result(string)
-//  command-failed
-//		reason(string)
-//  encryption-ok
-//		nothing
-//  encryption-failed
-//		reason(string)
-//	no_operation-ok
-//		nothing
-//	message
-//		message(string)
-//  error
-//		message(string)
-//
 
 enum
 {
@@ -123,12 +55,12 @@ enum
 enum
 {
 	REQUIRE_LOGIN = 1,
-	REQUIRE_ENCRYPTION = 2,
+	REQUIRE_ENCRYPTION = 2
 };
 
 enum
 {
-	ENCRYPTION_RSA1024XTEA = 1,
+	ENCRYPTION_RSA1024XTEA = 1
 };
 
 class NetworkMessage;
@@ -160,7 +92,7 @@ class Admin
 	protected:
 		Admin();
 
-		int32_t m_currrentConnections;
+		int32_t m_currentConnections;
 		bool m_encrypted;
 
 		RSA* m_key_RSA1024XTEA;
@@ -206,7 +138,10 @@ class ProtocolAdmin : public Protocol
 		};
 
 		virtual void parsePacket(NetworkMessage& msg);
+		virtual void releaseProtocol();
+#ifdef __DEBUG_NET_DETAIL__
 		virtual void deleteProtocolTask();
+#endif
 
 		// commands
 		void adminCommandPayHouses();
@@ -222,5 +157,7 @@ class ProtocolAdmin : public Protocol
 		ProtocolState_t m_state;
 		uint32_t m_lastCommand, m_startTime;
 };
+
 #endif
+
 #endif
