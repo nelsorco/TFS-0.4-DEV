@@ -1,19 +1,6 @@
-////////////////////////////////////////////////////////////////////////
-// OpenTibia - an opensource roleplaying game
-////////////////////////////////////////////////////////////////////////
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////
+// OpenTibia - an opensource roleplaying game  //
+/////////////////////////////////////////////////
 
 #ifndef __ACTIONS__
 #define __ACTIONS__
@@ -31,7 +18,7 @@ enum ActionType_t
 	ACTION_UNIQUEID,
 	ACTION_ACTIONID,
 	ACTION_ITEMID,
-	ACTION_RUNEID,
+	ACTION_RUNEID
 };
 
 class Actions : public BaseEvents
@@ -41,13 +28,12 @@ class Actions : public BaseEvents
 		virtual ~Actions();
 
 		bool useItem(Player* player, const Position& pos, uint8_t index, Item* item);
-		bool useItemEx(Player* player, const Position& fromPos, const Position& toPos,
-			uint8_t toStackPos, Item* item, bool isHotkey, uint32_t creatureId = 0);
+		bool useItemEx(Player* player, const Position& fromPos, const Position& toPos, uint8_t toStackPos, Item* item, bool isHotkey, uint32_t creatureId = 0);
 
 		ReturnValue canUse(const Player* player, const Position& pos);
-		ReturnValue canUse(const Player* player, const Position& pos, const Item* item);
+		ReturnValue canUseEx(const Player* player, const Position& pos, const Item* item);
 		ReturnValue canUseFar(const Creature* creature, const Position& toPos, bool checkLineOfSight);
-		bool hasAction(const Item* item) const {return getAction(item);}
+		bool hasAction(const Item* item) const {return getAction(item, ACTION_ANY) != NULL;}
 
 	protected:
 		Action* defaultAction;
@@ -71,18 +57,16 @@ class Actions : public BaseEvents
 		ActionUseMap actionItemMap;
 
 		bool executeUse(Action* action, Player* player, Item* item, const PositionEx& posEx, uint32_t creatureId);
-		ReturnValue internalUseItem(Player* player, const Position& pos,
-			uint8_t index, Item* item, uint32_t creatureId);
-		bool executeUseEx(Action* action, Player* player, Item* item, const PositionEx& fromPosEx,
-			const PositionEx& toPosEx, bool isHotkey, uint32_t creatureId);
-		ReturnValue internalUseItemEx(Player* player, const PositionEx& fromPosEx, const PositionEx& toPosEx,
-			Item* item, bool isHotkey, uint32_t creatureId);
-
-		Action* getAction(const Item* item, ActionType_t type = ACTION_ANY) const;
+		ReturnValue internalUseItem(Player* player, const Position& pos, uint8_t index, Item* item, uint32_t creatureId);
+		bool executeUseEx(Action* action, Player* player, Item* item, const PositionEx& fromPosEx, const PositionEx& toPosEx, bool isHotkey, uint32_t creatureId);
+		ReturnValue internalUseItemEx(Player* player, const PositionEx& fromPosEx, const PositionEx& toPosEx, Item* item, bool isHotkey, uint32_t creatureId);
+		
+		Action* getAction(const Item* item, ActionType_t type) const;
 		void clearMap(ActionUseMap& map);
 };
 
 typedef bool (ActionFunction)(Player* player, Item* item, const PositionEx& posFrom, const PositionEx& posTo, bool extendedUse, uint32_t creatureId);
+
 class Action : public Event
 {
 	public:
@@ -94,8 +78,7 @@ class Action : public Event
 		virtual bool loadFunction(const std::string& functionName);
 
 		//scripting
-		virtual bool executeUse(Player* player, Item* item, const PositionEx& posFrom,
-			const PositionEx& posTo, bool extendedUse, uint32_t creatureId);
+		virtual bool executeUse(Player* player, Item* item, const PositionEx& posFrom, const PositionEx& posTo, bool extendedUse, uint32_t creatureId);
 
 		bool getAllowFarUse() const {return allowFarUse;}
 		void setAllowFarUse(bool v) {allowFarUse = v;}
@@ -118,4 +101,5 @@ class Action : public Event
 		bool allowFarUse;
 		bool checkLineOfSight;
 };
+
 #endif
