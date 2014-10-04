@@ -613,6 +613,25 @@ ReturnValue Actions::internalUseItem(Player* player, const Position& pos, uint8_
 		return RET_NOERROR;
 	}
 
+	const ItemType& it = Item::items[item->getID()];
+	if(it.transformUseTo)
+	{
+		g_game.transformItem(item, it.transformUseTo);
+		g_game.startDecay(item);
+		return RET_NOERROR;
+	}
+
+	if(item->isPremiumScroll())
+	{
+		std::stringstream ss;
+		ss << " You have recived " << it.premiumDays << " premium days.";
+		player->sendTextMessage(MSG_INFO_DESCR, ss.str());
+
+		player->addPremiumDays(it.premiumDays);
+		g_game.internalRemoveItem(NULL, item, 1);
+		return RET_NOERROR;
+	}
+
 	return RET_CANNOTUSETHISOBJECT;
 }
 
@@ -625,7 +644,7 @@ bool Actions::useItem(Player* player, const Position& pos, uint8_t index, Item* 
 
 	player->setNextActionTask(NULL);
 	player->stopWalk();
-	player->setNextAction(OTSYS_TIME() + g_config.getNumber(ConfigManager::ACTIONS_DELAY_INTERVAL) - SCHEDULER_MINTICKS);
+	player->setNextAction(OTSYS_TIME() + g_config.getNumber(ConfigManager::ACTIONS_DELAY_INTERVAL) - 10);
 
 	ReturnValue ret = internalUseItem(player, pos, index, item, 0);
 	if(ret == RET_NOERROR)
@@ -732,7 +751,7 @@ bool Actions::useItemEx(Player* player, const Position& fromPos, const Position&
 
 	player->setNextActionTask(NULL);
 	player->stopWalk();
-	player->setNextAction(OTSYS_TIME() + g_config.getNumber(ConfigManager::EX_ACTIONS_DELAY_INTERVAL) - SCHEDULER_MINTICKS);
+	player->setNextAction(OTSYS_TIME() + g_config.getNumber(ConfigManager::EX_ACTIONS_DELAY_INTERVAL) - 10);
 
 	if(!getAction(item))
 	{
@@ -813,7 +832,9 @@ bool Action::loadFunction(const std::string& functionName)
 bool Action::increaseItemId(Player* player, Item* item, const PositionEx&, const PositionEx&, bool, uint32_t)
 {
 	if(!player || !item)
+	{
 		return false;
+	}
 
 	g_game.transformItem(item, item->getID() + 1);
 	g_game.startDecay(item);
@@ -823,7 +844,9 @@ bool Action::increaseItemId(Player* player, Item* item, const PositionEx&, const
 bool Action::decreaseItemId(Player* player, Item* item, const PositionEx&, const PositionEx&, bool, uint32_t)
 {
 	if(!player || !item)
+	{
 		return false;
+	}
 
 	g_game.transformItem(item, item->getID() - 1);
 	g_game.startDecay(item);
@@ -833,7 +856,9 @@ bool Action::decreaseItemId(Player* player, Item* item, const PositionEx&, const
 ReturnValue Action::canExecuteAction(const Player* player, const Position& toPos)
 {
 	if(!getAllowFarUse())
+	{
 		return g_actions->canUse(player, toPos);
+	}
 
 	return g_actions->canUseFar(player, toPos, getCheckLineOfSight());
 }
@@ -865,7 +890,10 @@ bool Action::executeUse(Player* player, Item* item, const PositionEx& fromPos, c
 				env->streamPosition(scriptstream, "toPosition", PositionEx());
 			}
 
-			scriptstream << m_scriptData;
+			if(m_scriptData)
+			{
+				scriptstream << m_scriptData;
+			}
 			bool result = true;
 			if(m_interface->loadBuffer(scriptstream.str()))
 			{
