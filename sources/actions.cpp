@@ -4,17 +4,23 @@
 
 #include "otpch.h"
 #include "const.h"
+
 #include "actions.h"
 #include "tools.h"
+
 #include "player.h"
 #include "monster.h"
 #include "npc.h"
+
 #include "item.h"
 #include "container.h"
+
 #include "game.h"
 #include "configmanager.h"
+
 #include "combat.h"
 #include "spells.h"
+
 #include "house.h"
 #include "beds.h"
 
@@ -141,7 +147,6 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 					delete useItemMap[intVector[i]];
 				}
 			}
-
 			useItemMap[intVector[i]] = new Action(action);
 		}
 	}
@@ -169,7 +174,6 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 							delete useItemMap[intVector[i]];
 						}
 					}
-
 					useItemMap[intVector[i]++] = new Action(action);
 				}
 			}
@@ -221,7 +225,6 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 					delete uniqueItemMap[intVector[i]];
 				}
 			}
-
 			uniqueItemMap[intVector[i]] = new Action(action);
 		}
 	}
@@ -249,7 +252,6 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 							delete uniqueItemMap[intVector[i]];
 						}
 					}
-
 					uniqueItemMap[intVector[i]++] = new Action(action);
 				}
 			}
@@ -301,7 +303,6 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 					delete actionItemMap[intVector[i]];
 				}
 			}
-
 			actionItemMap[intVector[i]] = new Action(action);
 		}
 	}
@@ -329,7 +330,6 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 							delete actionItemMap[intVector[i]];
 						}
 					}
-
 					actionItemMap[intVector[i]++] = new Action(action);
 				}
 			}
@@ -339,7 +339,6 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 			std::clog << "[Erro: data/actions] Entrada mal formada (de action: \"" << strValue << "\", para action: \"" << endValue << "\")" << std::endl;
 		}
 	}
-
 	return success;
 }
 
@@ -347,10 +346,25 @@ ReturnValue Actions::canUse(const Player* player, const Position& pos)
 {
 	const Position& playerPos = player->getPosition();
 	
-	if(pos.x == 0xFFFF){return RET_NOERROR;}
-	if(playerPos.z > pos.z){return RET_FIRSTGOUPSTAIRS;}
-	if(playerPos.z < pos.z){return RET_FIRSTGODOWNSTAIRS;}
-	if(!Position::areInRange<1,1,0>(playerPos, pos)){return RET_TOOFARAWAY;}
+	if(pos.x == 0xFFFF)
+	{
+		return RET_NOERROR;
+	}
+
+	if(playerPos.z > pos.z)
+	{
+		return RET_FIRSTGOUPSTAIRS;
+	}
+
+	if(playerPos.z < pos.z)
+	{
+		return RET_FIRSTGODOWNSTAIRS;
+	}
+
+	if(!Position::areInRange<1,1,0>(playerPos, pos))
+	{
+		return RET_TOOFARAWAY;
+	}
 
 	Tile* tile = g_game.getTile(pos);
 	if(tile)
@@ -368,25 +382,63 @@ ReturnValue Actions::canUse(const Player* player, const Position& pos, const Ite
 {
 	Action* action = NULL;
 	
-	if((action = getAction(item, ACTION_UNIQUEID))){return action->canExecuteAction(player, pos);}
-	if((action = getAction(item, ACTION_ACTIONID))){return action->canExecuteAction(player, pos);}
-	if((action = getAction(item, ACTION_ITEMID))){return action->canExecuteAction(player, pos);}
-	if((action = getAction(item, ACTION_RUNEID))){return action->canExecuteAction(player, pos);}
-	if(defaultAction){return defaultAction->canExecuteAction(player, pos);}
+	if((action = getAction(item, ACTION_UNIQUEID)))
+	{
+		return action->canExecuteAction(player, pos);
+	}
+
+	if((action = getAction(item, ACTION_ACTIONID)))
+	{
+		return action->canExecuteAction(player, pos);
+	}
+
+	if((action = getAction(item, ACTION_ITEMID)))
+	{
+		return action->canExecuteAction(player, pos);
+	}
+	
+	if((action = getAction(item, ACTION_RUNEID)))
+	{
+		return action->canExecuteAction(player, pos);
+	}
+	
+	if(defaultAction)
+	{
+		return defaultAction->canExecuteAction(player, pos);
+	}
 
 	return RET_NOERROR;
 }
 
 ReturnValue Actions::canUseFar(const Creature* creature, const Position& toPos, bool checkLineOfSight)
 {
-	if(toPos.x == 0xFFFF){return RET_NOERROR;}
+	if(toPos.x == 0xFFFF)
+	{
+		return RET_NOERROR;
+	}
 
 	const Position& creaturePos = creature->getPosition();
 	
-	if(creaturePos.z > toPos.z){return RET_FIRSTGOUPSTAIRS;}
-	if(creaturePos.z < toPos.z){return RET_FIRSTGODOWNSTAIRS;}
-	if(!Position::areInRange<7,5,0>(toPos, creaturePos)){return RET_TOOFARAWAY;}
-	if(checkLineOfSight && !g_game.canThrowObjectTo(creaturePos, toPos)){return RET_CANNOTTHROW;}
+	if(creaturePos.z > toPos.z)
+	{
+		return RET_FIRSTGOUPSTAIRS;
+	}
+
+	if(creaturePos.z < toPos.z)
+	{
+		return RET_FIRSTGODOWNSTAIRS;
+	}
+
+	if(!Position::areInRange<7,5,0>(toPos, creaturePos))
+	{
+		return RET_TOOFARAWAY;
+	}
+	
+
+	if(checkLineOfSight && !g_game.canThrowObjectTo(creaturePos, toPos))
+	{
+		return RET_CANNOTTHROW;
+	}
 
 	return RET_NOERROR;
 }
@@ -613,25 +665,6 @@ ReturnValue Actions::internalUseItem(Player* player, const Position& pos, uint8_
 		return RET_NOERROR;
 	}
 
-	const ItemType& it = Item::items[item->getID()];
-	if(it.transformUseTo)
-	{
-		g_game.transformItem(item, it.transformUseTo);
-		g_game.startDecay(item);
-		return RET_NOERROR;
-	}
-
-	if(item->isPremiumScroll())
-	{
-		std::stringstream ss;
-		ss << " You have recived " << it.premiumDays << " premium days.";
-		player->sendTextMessage(MSG_INFO_DESCR, ss.str());
-
-		player->addPremiumDays(it.premiumDays);
-		g_game.internalRemoveItem(NULL, item, 1);
-		return RET_NOERROR;
-	}
-
 	return RET_CANNOTUSETHISOBJECT;
 }
 
@@ -659,6 +692,7 @@ bool Actions::useItem(Player* player, const Position& pos, uint8_t index, Item* 
 bool Actions::executeUseEx(Action* action, Player* player, Item* item, const PositionEx& fromPosEx, const PositionEx& toPosEx, bool isHotkey, uint32_t creatureId)
 {
 	return (action->executeUse(player, item, fromPosEx, toPosEx, isHotkey, creatureId) || action->hasOwnErrorHandler());
+
 }
 
 ReturnValue Actions::internalUseItemEx(Player* player, const PositionEx& fromPosEx, const PositionEx& toPosEx, Item* item, bool isHotkey, uint32_t creatureId)
@@ -692,6 +726,7 @@ ReturnValue Actions::internalUseItemEx(Player* player, const PositionEx& fromPos
 		{
 			return RET_NOERROR;
 		}
+
 	}
 
 	if((action = getAction(item, ACTION_ITEMID)))
@@ -890,10 +925,8 @@ bool Action::executeUse(Player* player, Item* item, const PositionEx& fromPos, c
 				env->streamPosition(scriptstream, "toPosition", PositionEx());
 			}
 
-			if(m_scriptData)
-			{
-				scriptstream << m_scriptData;
-			}
+			scriptstream << m_scriptData;
+
 			bool result = true;
 			if(m_interface->loadBuffer(scriptstream.str()))
 			{
@@ -942,6 +975,7 @@ bool Action::executeUse(Player* player, Item* item, const PositionEx& fromPos, c
 	else
 	{
 		std::clog << "[Erro: Action] Sobrecarga na execucao da function." << std::endl;
+
 		return false;
 	}
 }
