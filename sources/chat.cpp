@@ -1,26 +1,12 @@
-////////////////////////////////////////////////////////////////////////
-// OpenTibia - an opensource roleplaying game
-////////////////////////////////////////////////////////////////////////
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////
+// OpenTibia - an opensource roleplaying game  //
+/////////////////////////////////////////////////
+
 #include "otpch.h"
 #include "chat.h"
-
 #include "player.h"
 #include "iologindata.h"
 #include "manager.h"
-
 #include "configmanager.h"
 #include "game.h"
 
@@ -36,7 +22,9 @@ PrivateChatChannel::PrivateChatChannel(uint16_t id, std::string name, uint16_t f
 bool PrivateChatChannel::isInvited(const Player* player)
 {
 	if(player->getGUID() == m_owner)
+	{
 		return true;
+	}
 
 	return std::find(m_invites.begin(), m_invites.end(), player->getGUID()) != m_invites.end();
 }
@@ -44,7 +32,9 @@ bool PrivateChatChannel::isInvited(const Player* player)
 bool PrivateChatChannel::addInvited(Player* player)
 {
 	if(std::find(m_invites.begin(), m_invites.end(), player->getGUID()) != m_invites.end())
+	{
 		return false;
+	}
 
 	m_invites.push_back(player->getGUID());
 	return true;
@@ -54,7 +44,9 @@ bool PrivateChatChannel::removeInvited(Player* player)
 {
 	InviteList::iterator it = std::find(m_invites.begin(), m_invites.end(), player->getGUID());
 	if(it == m_invites.end())
+	{
 		return false;
+	}
 
 	m_invites.erase(it);
 	return true;
@@ -63,7 +55,9 @@ bool PrivateChatChannel::removeInvited(Player* player)
 void PrivateChatChannel::invitePlayer(Player* player, Player* invitePlayer)
 {
 	if(player == invitePlayer || !addInvited(invitePlayer))
+	{
 		return;
+	}
 
 	std::stringstream msg;
 	msg << player->getName() << " invites you to " << (player->getSex(false) ? "his" : "her") << " private chat channel.";
@@ -77,7 +71,9 @@ void PrivateChatChannel::invitePlayer(Player* player, Player* invitePlayer)
 void PrivateChatChannel::excludePlayer(Player* player, Player* excludePlayer)
 {
 	if(player == excludePlayer || !removeInvited(excludePlayer))
+	{
 		return;
+	}
 
 	std::string msg = excludePlayer->getName();
 	msg += " has been excluded.";
@@ -90,7 +86,9 @@ void PrivateChatChannel::excludePlayer(Player* player, Player* excludePlayer)
 void PrivateChatChannel::closeChannel()
 {
 	for(UsersMap::iterator it = m_users.begin(); it != m_users.end(); ++it)
+	{
 		it->second->sendClosePrivate(m_id);
+	}
 }
 
 ChatChannel::ChatChannel(uint16_t id, const std::string& name, uint16_t flags, uint32_t access/* = 0*/,
@@ -102,17 +100,20 @@ ChatChannel::ChatChannel(uint16_t id, const std::string& name, uint16_t flags, u
 {
 	if(hasFlag(CHANNELFLAG_LOGGED))
 	{
-		m_file.reset(new std::ofstream(getFilePath(FILE_TYPE_LOG, (std::string)"chat/" + g_config.getString(
-			ConfigManager::PREFIX_CHANNEL_LOGS) + m_name + (std::string)".log").c_str(), std::ios::app | std::ios::out));
+		m_file.reset(new std::ofstream(getFilePath(FILE_TYPE_LOG, (std::string)"chat/" + g_config.getString(ConfigManager::PREFIX_CHANNEL_LOGS) + m_name + (std::string)".log").c_str(), std::ios::app | std::ios::out));
 		if(!m_file->is_open())
+		{
 			m_flags &= ~CHANNELFLAG_LOGGED;
+		}
 	}
 }
 
 bool ChatChannel::addUser(Player* player)
 {
 	if(m_users.find(player->getID()) != m_users.end())
+	{
 		return false;
+	}
 
 	ChatChannel* channel = g_chat.getChannel(player, m_id);
 	if(!channel)
@@ -120,13 +121,16 @@ bool ChatChannel::addUser(Player* player)
 		#ifdef __DEBUG_CHAT__
 		std::clog << "ChatChannel::addUser - failed retrieving channel." << std::endl;
 		#endif
+		
 		return false;
 	}
 
 	m_users[player->getID()] = player;
 	CreatureEventList joinEvents = player->getCreatureEvents(CREATURE_EVENT_CHANNEL_JOIN);
 	for(CreatureEventList::iterator it = joinEvents.begin(); it != joinEvents.end(); ++it)
+	{
 		(*it)->executeChannelJoin(player, m_id, m_users);
+	}
 
 	Manager::getInstance()->addUser(player->getID(), m_id);
 	return true;
@@ -135,16 +139,22 @@ bool ChatChannel::addUser(Player* player)
 bool ChatChannel::removeUser(Player* player)
 {
 	if(!player || player->isRemoved())
+	{
 		return false;
+	}
 
 	UsersMap::iterator it = m_users.find(player->getID());
 	if(it == m_users.end())
+	{
 		return false;
+	}
 
 	m_users.erase(it);
 	CreatureEventList leaveEvents = player->getCreatureEvents(CREATURE_EVENT_CHANNEL_LEAVE);
 	for(CreatureEventList::iterator it = leaveEvents.begin(); it != leaveEvents.end(); ++it)
+	{
 		(*it)->executeChannelLeave(player, m_id, m_users);
+	}
 
 	Manager::getInstance()->removeUser(player->getID(), m_id);
 	return true;
@@ -154,19 +164,27 @@ bool ChatChannel::talk(Player* player, SpeakClasses type, const std::string& tex
 {
 	UsersMap::iterator it = m_users.find(player->getID());
 	if(it == m_users.end())
+	{
 		return false;
+	}
 
 	if(m_condition && !player->hasFlag(PlayerFlag_CannotBeMuted))
 	{
 		if(Condition* condition = m_condition->clone())
+		{
 			player->addCondition(condition);
+		}
 	}
 
 	for(it = m_users.begin(); it != m_users.end(); ++it)
+	{
 		it->second->sendToChannel(player, type, text, m_id, _time, pg);
+	}
 
 	if(hasFlag(CHANNELFLAG_LOGGED) && m_file->is_open())
+	{
 		*m_file << "[" << formatDate() << "] " << player->getName() << ": " << text << std::endl;
+	}
 
 	return true;
 }
@@ -174,10 +192,14 @@ bool ChatChannel::talk(Player* player, SpeakClasses type, const std::string& tex
 bool ChatChannel::talk(std::string nick, SpeakClasses type, std::string text)
 {
 	for(UsersMap::iterator it = m_users.begin(); it != m_users.end(); ++it)
+	{
 		it->second->sendChannelMessage(nick, text, type, m_id);
+	}
 
 	if(hasFlag(CHANNELFLAG_LOGGED) && m_file->is_open())
+	{
 		*m_file << "[" << formatDate() << "] " << nick << ": " << text << std::endl;
+	}
 
 	return true;
 }
@@ -185,7 +207,9 @@ bool ChatChannel::talk(std::string nick, SpeakClasses type, std::string text)
 Chat::~Chat()
 {
 	for(GuildChannelMap::iterator it = m_guildChannels.begin(); it != m_guildChannels.end(); ++it)
+	{
 		delete it->second;
+	}
 
 	m_guildChannels.clear();
 	clear();
@@ -194,15 +218,21 @@ Chat::~Chat()
 void Chat::clear()
 {
 	for(NormalChannelMap::iterator it = m_normalChannels.begin(); it != m_normalChannels.end(); ++it)
+	{
 		delete it->second;
+	}
 
 	m_normalChannels.clear();
 	for(PartyChannelMap::iterator it = m_partyChannels.begin(); it != m_partyChannels.end(); ++it)
+	{
 		delete it->second;
+	}
 
 	m_partyChannels.clear();
 	for(PrivateChannelMap::iterator it = m_privateChannels.begin(); it != m_privateChannels.end(); ++it)
+	{
 		delete it->second;
+	}
 
 	m_privateChannels.clear();
 	delete dummyPrivate;
@@ -233,7 +263,9 @@ bool Chat::loadFromXml()
 	}
 
 	for(p = root->children; p; p = p->next)
+	{
 		parseChannelNode(p);
+	}
 
 	xmlFreeDoc(doc);
 	return true;
@@ -243,7 +275,9 @@ bool Chat::parseChannelNode(xmlNodePtr p)
 {
 	int32_t intValue;
 	if(xmlStrcmp(p->name, (const xmlChar*)"channel"))
+	{
 		return false;
+	}
 
 	if(!readXMLInteger(p, "id", intValue) || intValue <= CHANNEL_GUILD)
 	{
@@ -268,21 +302,31 @@ bool Chat::parseChannelNode(xmlNodePtr p)
 	std::string name = strValue;
 	uint16_t flags = ChatChannel::staticFlags;
 	if(readXMLString(p, "enabled", strValue) && !booleanString(strValue))
+	{
 		flags &= ~CHANNELFLAG_ENABLED;
+	}
 
 	if(readXMLString(p, "active", strValue) && !booleanString(strValue))
+	{
 		flags &= ~CHANNELFLAG_ACTIVE;
+	}
 
 	if((readXMLString(p, "logged", strValue) || readXMLString(p, "log", strValue)) && booleanString(strValue))
+	{
 		flags |= CHANNELFLAG_LOGGED;
+	}
 
 	uint32_t access = 0;
 	if(readXMLInteger(p, "access", intValue))
+	{
 		access = intValue;
+	}
 
 	uint32_t level = 1;
 	if(readXMLInteger(p, "level", intValue))
+	{
 		level = intValue;
+	}
 
 	int32_t conditionId = -1;
 	std::string conditionMessage = "You are muted.";
@@ -290,22 +334,28 @@ bool Chat::parseChannelNode(xmlNodePtr p)
 	Condition* condition = NULL;
 	if(readXMLInteger(p, "muted", intValue))
 	{
-		conditionId = 2;
+		conditionId = 3;
 		int32_t tmp = intValue * 1000;
 		if(readXMLInteger(p, "conditionId", intValue))
 		{
 			conditionId = intValue;
-			if(conditionId < 2)
+			if(conditionId < 3)
+			{
 				std::clog << "[Warning - Chat::parseChannelNode] Using reserved muted condition sub id (" << conditionId << ")" << std::endl;
+			}
 		}
 
 		if((condition = Condition::createCondition(CONDITIONID_DEFAULT, CONDITION_MUTED, tmp, 0, false, conditionId)))
 		{
 			if(readXMLString(p, "conditionMessage", strValue))
+			{
 				conditionMessage = strValue;
+			}
 		}
 		else
+		{
 			conditionId = -1;
+		}
 	}
 
 	StringVec vocStringVec;
@@ -315,12 +365,16 @@ bool Chat::parseChannelNode(xmlNodePtr p)
 	for(xmlNodePtr tmpNode = p->children; tmpNode; tmpNode = tmpNode->next)
 	{
 		if(!parseVocationNode(tmpNode, vocMap, vocStringVec, error))
+		{
 			std::clog << "[Warning - Chat::loadFromXml] " << error << std::endl;
+		}
 	}
 
 	VocationMap* vocationMap = NULL;
 	if(!vocMap.empty())
+	{
 		vocationMap = new VocationMap(vocMap);
+	}
 
 	switch(id)
 	{
@@ -333,16 +387,19 @@ bool Chat::parseChannelNode(xmlNodePtr p)
 		case CHANNEL_PRIVATE:
 		{
 			if(ChatChannel* newChannel = new PrivateChatChannel(CHANNEL_PRIVATE, name, flags))
+			{
 				dummyPrivate = newChannel;
+			}
 
 			break;
 		}
 
 		default:
 		{
-			if(ChatChannel* newChannel = new ChatChannel(id, name, flags, access, level,
-				condition, conditionId, conditionMessage, vocationMap))
+			if(ChatChannel* newChannel = new ChatChannel(id, name, flags, access, level, condition, conditionId, conditionMessage, vocationMap))
+			{
 				m_normalChannels[id] = newChannel;
+			}
 
 			break;
 		}
@@ -354,7 +411,9 @@ bool Chat::parseChannelNode(xmlNodePtr p)
 ChatChannel* Chat::createChannel(Player* player, uint16_t channelId)
 {
 	if(!player || player->isRemoved() || getChannel(player, channelId))
+	{
 		return NULL;
+	}
 
 	switch(channelId)
 	{
@@ -362,7 +421,9 @@ ChatChannel* Chat::createChannel(Player* player, uint16_t channelId)
 		{
 			ChatChannel* newChannel = NULL;
 			if((newChannel = new ChatChannel(channelId, player->getGuildName(), ChatChannel::staticFlags)))
+			{
 				m_guildChannels[player->getGuildId()] = newChannel;
+			}
 
 			return newChannel;
 		}
@@ -371,26 +432,32 @@ ChatChannel* Chat::createChannel(Player* player, uint16_t channelId)
 		{
 			ChatChannel* newChannel = NULL;
 			if(player->getParty() && (newChannel = new ChatChannel(channelId, partyName, ChatChannel::staticFlags)))
+			{
 				m_partyChannels[player->getParty()] = newChannel;
+			}
 
 			return newChannel;
 		}
 
 		case CHANNEL_PRIVATE:
 		{
-			//only 1 private channel for each premium player
-			if(!player->isPremium() || getPrivateChannel(player))
+			if(!player->isPremium() || getPrivateChannel(player)) //only 1 private channel for each premium player
+			{
 				return NULL;
+			}
 
-			//find a free private channel slot
-			for(uint16_t i = 100; i < 10000; ++i)
+			for(uint16_t i = 100; i < 10000; ++i) //find a free private channel slot
 			{
 				if(m_privateChannels.find(i) != m_privateChannels.end())
+				{
 					continue;
+				}
 
 				uint16_t flags = 0;
 				if(dummyPrivate)
+				{
 					flags = dummyPrivate->getFlags();
+				}
 
 				PrivateChatChannel* newChannel = NULL;
 				if((newChannel = new PrivateChatChannel(i, player->getName() + "'s Channel", flags)))
@@ -404,7 +471,9 @@ ChatChannel* Chat::createChannel(Player* player, uint16_t channelId)
 		}
 
 		default:
+		{
 			break;
+		}
 	}
 
 	return NULL;
@@ -418,7 +487,9 @@ bool Chat::deleteChannel(Player* player, uint16_t channelId)
 		{
 			GuildChannelMap::iterator it = m_guildChannels.find(player->getGuildId());
 			if(it == m_guildChannels.end())
+			{
 				return false;
+			}
 
 			delete it->second;
 			m_guildChannels.erase(it);
@@ -429,7 +500,9 @@ bool Chat::deleteChannel(Player* player, uint16_t channelId)
 		{
 			PartyChannelMap::iterator it = m_partyChannels.find(player->getParty());
 			if(it == m_partyChannels.end())
+			{
 				return false;
+			}
 
 			delete it->second;
 			m_partyChannels.erase(it);
@@ -440,7 +513,9 @@ bool Chat::deleteChannel(Player* player, uint16_t channelId)
 		{
 			PrivateChannelMap::iterator it = m_privateChannels.find(channelId);
 			if(it == m_privateChannels.end())
+			{
 				return false;
+			}
 
 			it->second->closeChannel();
 			delete it->second;
@@ -457,7 +532,9 @@ ChatChannel* Chat::addUserToChannel(Player* player, uint16_t channelId)
 {
 	ChatChannel* channel = getChannel(player, channelId);
 	if(channel && channel->addUser(player))
+	{
 		return channel;
+	}
 
 	return NULL;
 }
@@ -466,10 +543,14 @@ bool Chat::removeUserFromChannel(Player* player, uint16_t channelId)
 {
 	ChatChannel* channel = getChannel(player, channelId);
 	if(!channel || !channel->removeUser(player))
+	{
 		return false;
+	}
 
 	if(channel->getOwner() == player->getGUID())
+	{
 		deleteChannel(player, channelId);
+	}
 
 	return true;
 }
@@ -477,33 +558,47 @@ bool Chat::removeUserFromChannel(Player* player, uint16_t channelId)
 void Chat::removeUserFromAllChannels(Player* player)
 {
 	if(!player || player->isRemoved())
+	{
 		return;
+	}
 
 	for(NormalChannelMap::iterator it = m_normalChannels.begin(); it != m_normalChannels.end(); ++it)
+	{
 		it->second->removeUser(player);
+	}
 
 	for(PartyChannelMap::iterator it = m_partyChannels.begin(); it != m_partyChannels.end(); ++it)
+	{
 		it->second->removeUser(player);
+	}
 
 	for(GuildChannelMap::iterator it = m_guildChannels.begin(); it != m_guildChannels.end(); ++it)
+	{
 		it->second->removeUser(player);
+	}
 
 	for(PrivateChannelMap::iterator it = m_privateChannels.begin(); it != m_privateChannels.end(); ++it)
 	{
 		it->second->removeUser(player);
 		if(it->second->getOwner() == player->getGUID())
+		{
 			deleteChannel(player, it->second->getId());
+		}
 	}
 }
 
 bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& text, uint16_t channelId, ProtocolGame* pg) //CA
 {
 	if(text.empty())
+	{
 		return false;
+	}
 
 	ChatChannel* channel = getChannel(player, channelId);
 	if(!channel)
+	{
 		return false;
+	}
 
 	if(!player->hasFlag(PlayerFlag_CannotBeMuted))
 	{
@@ -529,21 +624,28 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 	}
 
 	if(isPublicChannel(channelId))
+	{
 		Manager::getInstance()->talk(player->getID(), channelId, type, text);
+	}
 
-	if(channelId != CHANNEL_GUILD || !g_config.getBool(ConfigManager::INGAME_GUILD_MANAGEMENT)
-		|| (text[0] != '!' && text[0] != '/'))
+	if(channelId != CHANNEL_GUILD || !g_config.getBool(ConfigManager::INGAME_GUILD_MANAGEMENT)|| (text[0] != '!' && text[0] != '/'))
 	{
 		if(channelId == CHANNEL_GUILD)
 		{
 			switch(player->getGuildLevel())
 			{
 				case GUILDLEVEL_VICE:
+				{
 					return channel->talk(player, SPEAK_CHANNEL_O, text);
+				}
 				case GUILDLEVEL_LEADER:
+				{
 					return channel->talk(player, SPEAK_CHANNEL_RN, text);
+				}
 				default:
+				{
 					break;
+				}
 			}
 		}
 
@@ -562,6 +664,7 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 		return true;
 	}
 
+	/*
 	char buffer[350];
 	if(text.substr(1) == "disband")
 	{
@@ -573,7 +676,10 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 		else
 			player->sendCancel("You are not the leader of your guild.");
 	}
-	else if(text.substr(1, 6) == "invite")
+	else if(text.substr(1, 6) == "invite") */
+	
+	char buffer[350];
+	if(text.substr(1, 6) == "invite")
 	{
 		if(player->getGuildLevel() > GUILDLEVEL_MEMBER)
 		{
@@ -595,10 +701,14 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 							paramPlayer->invitedToGuildsList.push_back(player->getGuildId());
 						}
 						else
+						{
 							player->sendCancel("A player with that name has already been invited to your guild.");
+						}
 					}
 					else
+					{
 						player->sendCancel("A player with that name is already in a guild.");
+					}
 				}
 				else if(IOLoginData::getInstance()->playerExists(param))
 				{
@@ -615,42 +725,54 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 								channel->talk(player, SPEAK_CHANNEL_W, buffer);
 							}
 							else
+							{
 								player->sendCancel("Your guild does not exist anymore.");
+							}
 						}
 						else
+						{
 							player->sendCancel("A player with that name has already been invited to your guild.");
+						}
 					}
 					else
+					{
 						player->sendCancel("A player with that name is already in a guild.");
+					}
 				}
 				else
+				{
 					player->sendCancel("A player with that name does not exist.");
+				}
 			}
 			else
+			{
 				player->sendCancel("Invalid guildcommand parameters.");
+			}
 		}
 		else
+		{
 			player->sendCancel("You don't have rights to invite players to your guild.");
+		}
 	}
 	else if(text.substr(1, 5) == "leave")
 	{
 		if(player->getGuildLevel() < GUILDLEVEL_LEADER)
 		{
-#ifdef __WAR_SYSTEM__
 			if(!player->hasEnemy())
 			{
-#endif
 				sprintf(buffer, "%s has left the guild.", player->getName().c_str());
 				channel->talk(player, SPEAK_CHANNEL_W, buffer);
 				player->leaveGuild();
-#ifdef __WAR_SYSTEM__
 			}
 			else
+			{
 				player->sendCancel("Your guild is currently at war, you cannot leave it right now.");
-#endif
+			}
 		}
 		else
+		{
 			player->sendCancel("You cannot leave your guild because you are the leader of it, you have to pass the leadership to another member of your guild or disband the guild.");
+		}
 	}
 	else if(text.substr(1, 6) == "revoke")
 	{
@@ -676,10 +798,14 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 							return true;
 						}
 						else
+						{
 							player->sendCancel("A player with that name is not invited to your guild.");
+						}
 					}
 					else
+					{
 						player->sendCancel("A player with that name is already in a guild.");
+					}
 				}
 				else if(IOLoginData::getInstance()->playerExists(param))
 				{
@@ -694,19 +820,29 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 							IOGuild::getInstance()->revokeInvite(player->getGuildId(), guid);
 						}
 						else
+						{
 							player->sendCancel("It seems like your guild does not exist anymore.");
+						}
 					}
 					else
+					{
 						player->sendCancel("A player with that name is not invited to your guild.");
+					}
 				}
 				else
+				{
 					player->sendCancel("A player with that name does not exist.");
+				}
 			}
 			else
+			{
 				player->sendCancel("Invalid guildcommand parameters.");
+			}
 		}
 		else
+		{
 			player->sendCancel("You don't have rights to revoke an invite of someone in your guild.");
+		}
 	}
 	else if(text.substr(1, 7) == "promote" || text.substr(1, 6) == "demote" || text.substr(1, 14) == "passleadership" || text.substr(1, 4) == "kick")
 	{
@@ -714,14 +850,10 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 		{
 			std::string param;
 			uint32_t length = 0;
-			if(text[2] == 'r')
-				length = 9;
-			else if(text[2] == 'e')
-				length = 7;
-			else if(text[2] == 'a')
-				length = 16;
-			else
-				length = 6;
+			if(text[2] == 'r'){length = 9;}
+			else if(text[2] == 'e'){length = 7;}
+			else if(text[2] == 'a'){length = 16;}
+			else{length = 6;}
 
 			if(text.length() < length)
 			{
@@ -751,10 +883,14 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 										channel->talk(player, SPEAK_CHANNEL_W, buffer);
 									}
 									else
+									{
 										player->sendCancel("A player with that name does not have a premium account.");
+									}
 								}
 								else
+								{
 									player->sendCancel("You can only promote Members to Vice-Leaders.");
+								}
 							}
 							else if(text[2] == 'e')
 							{
@@ -765,7 +901,9 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 									channel->talk(player, SPEAK_CHANNEL_W, buffer);
 								}
 								else
+								{
 									player->sendCancel("You can only demote Vice-Leaders to Members.");
+								}
 							}
 							else if(text[2] == 'a')
 							{
@@ -787,37 +925,45 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 									}
 								}
 								else
+								{
 									player->sendCancel("A player with that name is not a Vice-Leader.");
+								}
 							}
 							else
 							{
 								if(player->getGuildLevel() > paramPlayer->getGuildLevel())
 								{
-#ifdef __WAR_SYSTEM__
 									if(!player->hasEnemy())
 									{
-#endif
 										sprintf(buffer, "%s has been kicked from the guild by %s.", paramPlayer->getName().c_str(), player->getName().c_str());
 										channel->talk(player, SPEAK_CHANNEL_W, buffer);
 										paramPlayer->leaveGuild();
-#ifdef __WAR_SYSTEM__
 									}
 									else
+									{
 										player->sendCancel("Your guild is currently at war, you cannot kick right now.");
-#endif
+									}
 								}
 								else
+								{
 									player->sendCancel("You may only kick players with a guild rank below your.");
+								}
 							}
 						}
 						else
+						{
 							player->sendCancel("You are not in the same guild as a player with that name.");
+						}
 					}
 					else
+					{
 						player->sendCancel("Could not find the guild of a player with that name.");
+					}
 				}
 				else
+				{
 					player->sendCancel("A player with that name is not in a guild.");
+				}
 			}
 			else if(IOLoginData::getInstance()->playerExists(param))
 			{
@@ -838,10 +984,14 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 									channel->talk(player, SPEAK_CHANNEL_W, buffer);
 								}
 								else
+								{
 									player->sendCancel("A player with that name does not have a premium account.");
+								}
 							}
 							else
+							{
 								player->sendCancel("You can only promote Members to Vice-Leaders.");
+							}
 						}
 						else if(text[2] == 'e')
 						{
@@ -852,7 +1002,9 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 								channel->talk(player, SPEAK_CHANNEL_W, buffer);
 							}
 							else
+							{
 								player->sendCancel("You can only demote Vice-Leaders to Members.");
+							}
 						}
 						else if(text[2] == 'a')
 						{
@@ -873,7 +1025,9 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 								}
 							}
 							else
+							{
 								player->sendCancel("A player with that name is not a Vice-Leader.");
+							}
 						}
 						else
 						{
@@ -884,13 +1038,19 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 					}
 				}
 				else
+				{
 					player->sendCancel("A player with that name is not in a guild.");
+				}
 			}
 			else
+			{
 				player->sendCancel("A player with that name does not exist.");
+			}
 		}
 		else
+		{
 			player->sendCancel("You are not the leader of your guild.");
+		}
 	}
 	else if(text.substr(1, 4) == "nick" && text.length() > 5)
 	{
@@ -919,31 +1079,49 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 										{
 											paramPlayer->setGuildNick(param2);
 											if(player != paramPlayer)
+											{
 												sprintf(buffer, "%s has set the guildnick of %s to \"%s\".", player->getName().c_str(), paramPlayer->getName().c_str(), param2.c_str());
+											}
 											else
+											{
 												sprintf(buffer, "%s has set %s guildnick to \"%s\".", player->getName().c_str(), (player->getSex(false) ? "his" : "her"), param2.c_str());
+											}
 											channel->talk(player, SPEAK_CHANNEL_W, buffer);
 										}
 										else
+										{
 											player->sendCancel("You may only change the guild nick of players that have a lower rank than you.");
+										}
 									}
 									else
+									{
 										player->sendCancel("A player with that name is not in your guild.");
+									}
 								}
 								else
+								{
 									player->sendCancel("A player with that name's guild could not be found.");
+								}
 							}
 							else
+							{
 								player->sendCancel("That guildnick is not valid.");
+							}
 						}
 						else
+						{
 							player->sendCancel("That guildnick is too long, please select a shorter one.");
+						}
 					}
 					else
+					{
 						player->sendCancel("That guildnick is too short, please select a longer one.");
+					}
 				}
 				else
+				{
 					player->sendCancel("A player with that name is not in a guild.");
+				}
 			}
 			else if(IOLoginData::getInstance()->playerExists(param1))
 			{
@@ -968,31 +1146,49 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 											channel->talk(player, SPEAK_CHANNEL_W, buffer);
 										}
 										else
+										{
 											player->sendCancel("You may only change the guild nick of players that have a lower rank than you.");
+										}
 									}
 									else
+									{
 										player->sendCancel("A player with that name is not in your guild.");
+									}
 								}
 								else
+								{
 									player->sendCancel("A player with that name's guild could not be found.");
+								}
 							}
 							else
+							{
 								player->sendCancel("That guildnick is not valid.");
+							}
 						}
 						else
+						{
 							player->sendCancel("That guildnick is too long, please select a shorter one.");
+						}
 					}
 					else
+					{
 						player->sendCancel("That guildnick is too short, please select a longer one.");
+					}
 				}
 				else
+				{
 					player->sendCancel("A player with that name is not in any guild.");
+				}
 			}
 			else
+			{
 				player->sendCancel("A player with that name does not exist.");
+			}
 		}
 		else
+		{
 			player->sendCancel("Invalid guildcommand parameters.");
+		}
 	}
 	else if(text.substr(1, 11) == "setrankname" && text.length() > 12)
 	{
@@ -1019,25 +1215,39 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 									channel->talk(player, SPEAK_CHANNEL_W, buffer);
 								}
 								else
+								{
 									player->sendCancel("There is already a rank in your guild with that name.");
+								}
 							}
 							else
+							{
 								player->sendCancel("There is no such rankname in your guild.");
+							}
 						}
 						else
+						{
 							player->sendCancel("The new guildrank contains invalid characters.");
+						}
 					}
 					else
+					{
 						player->sendCancel("The new rankname is too long.");
+					}
 				}
 				else
+				{
 					player->sendCancel("The new rankname is too short.");
+				}
 			}
 			else
+			{
 				player->sendCancel("You are not the leader of your guild.");
+			}
 		}
 		else
+		{
 			player->sendCancel("Invalid guildcommand parameters");
+		}
 	}
 	else if(text.substr(1, 7) == "setmotd")
 	{
@@ -1056,16 +1266,24 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 						channel->talk(player, SPEAK_CHANNEL_W, buffer);
 					}
 					else
+					{
 						player->sendCancel("That motd is too long.");
+					}
 				}
 				else
+				{
 					player->sendCancel("That motd is too short.");
+				}
 			}
 			else
+			{
 				player->sendCancel("Invalid guildcommand parameters.");
+			}
 		}
 		else
+		{
 			player->sendCancel("Only the leader of your guild can set the guild motd.");
+		}
 	}
 	else if(text.substr(1, 9) == "cleanmotd")
 	{
@@ -1076,12 +1294,18 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 			channel->talk(player, SPEAK_CHANNEL_W, buffer);
 		}
 		else
+		{
 			player->sendCancel("Only the leader of your guild can clean the guild motd.");
+		}
 	}
 	else if(text.substr(1, 8) == "commands")
+	{
 		player->sendToChannel(player, SPEAK_CHANNEL_W, "Guild commands with parameters: disband, invite[name], leave, kick[name], revoke[name], demote[name], promote[name], passleadership[name], nick[name, nick], setrankname[oldName, newName], setmotd[text] and cleanmotd.", CHANNEL_GUILD);
+	}
 	else
+	{
 		return false;
+	}
 
 	return true;
 }
@@ -1089,7 +1313,9 @@ bool Chat::talkToChannel(Player* player, SpeakClasses type, const std::string& t
 std::string Chat::getChannelName(Player* player, uint16_t channelId)
 {
 	if(ChatChannel* channel = getChannel(player, channelId))
+	{
 		return channel->getName();
+	}
 
 	return "";
 }
@@ -1098,20 +1324,27 @@ ChannelList Chat::getChannelList(Player* player)
 {
 	ChannelList list;
 	if(!player || player->isRemoved())
+	{
 		return list;
+	}
 
 	ChatChannel* channel = NULL;
 	if(player->getParty() && ((channel = getChannel(player, CHANNEL_PARTY)) || (channel = createChannel(player, CHANNEL_PARTY))))
+	{
 		list.push_back(channel);
+	}
 
-	if(player->getGuildId() && player->getGuildName().length() && ((channel = getChannel(
-		player, CHANNEL_GUILD)) || (channel = createChannel(player, CHANNEL_GUILD))))
+	if(player->getGuildId() && player->getGuildName().length() && ((channel = getChannel(player, CHANNEL_GUILD)) || (channel = createChannel(player, CHANNEL_GUILD))))
+	{
 		list.push_back(channel);
+	}
 
 	for(NormalChannelMap::iterator it = m_normalChannels.begin(); it != m_normalChannels.end(); ++it)
 	{
 		if((channel = getChannel(player, it->first)))
+		{
 			list.push_back(it->second);
+		}
 	}
 
 	bool hasPrivate = false;
@@ -1119,17 +1352,25 @@ ChannelList Chat::getChannelList(Player* player)
 	for(PrivateChannelMap::iterator pit = m_privateChannels.begin(); pit != m_privateChannels.end(); ++pit)
 	{
 		if(!(privChannel = pit->second))
+		{
 			continue;
+		}
 
 		if(privChannel->isInvited(player))
+		{
 			list.push_back(privChannel);
+		}
 
 		if(privChannel->getOwner() == player->getGUID())
+		{
 			hasPrivate = true;
+		}
 	}
 
 	if(!hasPrivate && player->isPremium())
+	{
 		list.push_front(dummyPrivate);
+	}
 
 	return list;
 }
@@ -1139,14 +1380,19 @@ ChatChannel* Chat::getChannel(Player* player, uint16_t channelId)
 	#ifdef __DEBUG_CHAT__
 	std::clog << "Chat::getChannel - getChannel id " << channelId << std::endl;
 	#endif
+	
 	if(!player || player->isRemoved())
+	{
 		return false;
+	}
 
 	if(channelId == CHANNEL_GUILD)
 	{
 		GuildChannelMap::iterator git = m_guildChannels.find(player->getGuildId());
 		if(git != m_guildChannels.end())
+		{
 			return git->second;
+		}
 
 		return NULL;
 	}
@@ -1169,29 +1415,35 @@ ChatChannel* Chat::getChannel(Player* player, uint16_t channelId)
 		#ifdef __DEBUG_CHAT__
 		std::clog << "Chat::getChannel - found normal channel" << std::endl;
 		#endif
+		
 		ChatChannel* tmpChannel = nit->second;
 		if(!tmpChannel || !tmpChannel->hasFlag(CHANNELFLAG_ENABLED) || player->getAccess() < tmpChannel->getAccess()
-			|| (!player->hasCustomFlag(PlayerCustomFlag_GamemasterPrivileges) && !tmpChannel->checkVocation(
-			player->getVocationId())))
+			|| (!player->hasCustomFlag(PlayerCustomFlag_GamemasterPrivileges) && !tmpChannel->checkVocation(player->getVocationId())))
 		{
 			#ifdef __DEBUG_CHAT__
 			std::clog << "Chat::getChannel - cannot access normal channel" << std::endl;
 			#endif
+			
 			return NULL;
 		}
 
 		if(channelId == CHANNEL_RVR && !player->hasFlag(PlayerFlag_CanAnswerRuleViolations))
+		{
 			return NULL;
+		}
 
 		#ifdef __DEBUG_CHAT__
 		std::clog << "Chat::getChannel - endpoint return" << std::endl;
 		#endif
+		
 		return tmpChannel;
 	}
 
 	PrivateChannelMap::iterator pit = m_privateChannels.find(channelId);
 	if(pit != m_privateChannels.end() && pit->second->isInvited(player))
+	{
 		return pit->second;
+	}
 
 	return NULL;
 }
@@ -1200,7 +1452,9 @@ ChatChannel* Chat::getChannelById(uint16_t channelId)
 {
 	NormalChannelMap::iterator it = m_normalChannels.find(channelId);
 	if(it != m_normalChannels.end())
+	{
 		return it->second;
+	}
 
 	return NULL;
 }
@@ -1208,13 +1462,17 @@ ChatChannel* Chat::getChannelById(uint16_t channelId)
 PrivateChatChannel* Chat::getPrivateChannel(Player* player)
 {
 	if(!player || player->isRemoved())
+	{
 		return NULL;
+	}
 
 	PrivateChatChannel* channel = NULL;
 	for(PrivateChannelMap::iterator it = m_privateChannels.begin(); it != m_privateChannels.end(); ++it)
 	{
 		if((channel = it->second) && channel->getOwner() == player->getGUID())
+		{
 			return channel;
+		}
 	}
 
 	return NULL;
@@ -1226,7 +1484,9 @@ ChannelList Chat::getPublicChannels() const
 	for(NormalChannelMap::const_iterator it = m_normalChannels.begin(); it != m_normalChannels.end(); ++it)
 	{
 		if(isPublicChannel(it->first))
+		{
 			list.push_back(it->second);
+		}
 	}
 
 	return list;
