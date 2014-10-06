@@ -1,24 +1,10 @@
-////////////////////////////////////////////////////////////////////////
-// OpenTibia - an opensource roleplaying game
-////////////////////////////////////////////////////////////////////////
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////
+// OpenTibia - an opensource roleplaying game  //
+/////////////////////////////////////////////////
 
 #ifndef __CHAT__
 #define __CHAT__
 #include "otsystem.h"
-
 #include <fstream>
 #include "const.h"
 #include "party.h"
@@ -38,16 +24,19 @@ typedef std::list<uint32_t> InviteList;
 class ChatChannel
 {
 	public:
-		ChatChannel(uint16_t id, const std::string& name, uint16_t flags, uint32_t access = 0,
-			uint32_t level = 1, Condition* condition = NULL, int32_t conditionId = -1,
+		ChatChannel(uint16_t id, const std::string& name, uint16_t flags, uint32_t access = 0, uint32_t level = 1, Condition* condition = NULL, int32_t conditionId = -1, 
 			const std::string& conditionMessage = "", VocationMap* vocationMap = NULL);
 		virtual ~ChatChannel()
 		{
 			if(m_condition)
+			{
 				delete m_condition;
+			}
 
 			if(m_vocationMap)
+			{
 				delete m_vocationMap;
+			}
 		}
 		static uint16_t staticFlags;
 
@@ -64,9 +53,7 @@ class ChatChannel
 		virtual uint32_t getOwner() {return 0;}
 
 		bool hasFlag(uint16_t value) const {return ((m_flags & (uint16_t)value) == (uint16_t)value);}
-		bool checkVocation(uint32_t vocationId) const
-			{return !m_vocationMap || m_vocationMap->empty() || m_vocationMap->find(
-				vocationId) != m_vocationMap->end();}
+		bool checkVocation(uint32_t vocationId) const {return !m_vocationMap || m_vocationMap->empty() || m_vocationMap->find(vocationId) != m_vocationMap->end();}
 
 		bool addUser(Player* player);
 		bool removeUser(Player* player);
@@ -169,4 +156,5 @@ class Chat
 		ChatChannel* dummyPrivate;
 		std::string partyName;
 };
+
 #endif
