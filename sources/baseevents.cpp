@@ -1,22 +1,9 @@
-////////////////////////////////////////////////////////////////////////
-// OpenTibia - an opensource roleplaying game
-////////////////////////////////////////////////////////////////////////
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////
+// OpenTibia - an opensource roleplaying game  //
+/////////////////////////////////////////////////
+
 #include "otpch.h"
 #include <libxml/xmlmemory.h>
-
 #include "baseevents.h"
 #include "tools.h"
 
@@ -30,7 +17,9 @@ bool BaseEvents::loadFromXml()
 	}
 
 	if(!getInterface().loadDirectory(getFilePath(FILE_TYPE_OTHER, std::string(scriptsName + "/lib/"))))
+	{
 		std::clog << "[Warning - BaseEvents::loadFromXml] Cannot load " << scriptsName << "/lib/" << std::endl;
+	}
 
 	xmlDocPtr doc = xmlParseFile(getFilePath(FILE_TYPE_OTHER, std::string(scriptsName + "/" + scriptsName + ".xml")).c_str());
 	if(!doc)
@@ -65,7 +54,9 @@ bool BaseEvents::parseEventNode(xmlNodePtr p, std::string scriptsPath, bool over
 {
 	Event* event = getEvent((const char*)p->name);
 	if(!event)
+	{
 		return false;
+	}
 
 	if(!event->configureEvent(p))
 	{
@@ -84,49 +75,69 @@ bool BaseEvents::parseEventNode(xmlNodePtr p, std::string scriptsPath, bool over
 		{
 			bool file = readXMLString(p, "value", strValue);
 			if(!file)
+			{
 				parseXMLContentString(p->children, strValue);
+			}
 			else
+			{
 				strValue = scriptsPath + strValue;
+			}
 
 			success = event->checkScript(strValue, file) && event->loadScript(strValue, file);
 		}
 		else if(tmpStrValue == "buffer")
 		{
 			if(!readXMLString(p, "value", strValue))
+			{
 				parseXMLContentString(p->children, strValue);
+			}
 
 			success = event->checkBuffer(strValue) && event->loadBuffer(strValue);
 		}
 		else if(tmpStrValue == "function")
 		{
 			if(readXMLString(p, "value", strValue))
+			{
 				success = event->loadFunction(strValue);
+			}
 		}
 	}
 	else if(readXMLString(p, "script", strValue))
 	{
 		bool file = asLowerCaseString(strValue) != "cdata";
 		if(!file)
+		{
 			parseXMLContentString(p->children, strValue);
+		}
 		else
+		{
 			strValue = scriptsPath + strValue;
+		}
 
 		success = event->checkScript(strValue, file) && event->loadScript(strValue, file);
 	}
 	else if(readXMLString(p, "buffer", strValue))
 	{
 		if(asLowerCaseString(strValue) == "cdata")
+		{
 			parseXMLContentString(p->children, strValue);
+		}
 
 		success = event->checkBuffer(strValue) && event->loadBuffer(strValue);
 	}
 	else if(readXMLString(p, "function", strValue))
+	{
 		success = event->loadFunction(strValue);
+	}
 	else if(parseXMLContentString(p->children, strValue) && event->checkBuffer(strValue))
+	{
 		success = event->loadBuffer(strValue);
+	}
 
 	if(!override && readXMLString(p, "override", strValue) && booleanString(strValue))
+	{
 		override = true;
+	}
 
 	if(success && !registerEvent(event, p, override) && event)
 	{
@@ -193,7 +204,9 @@ bool Event::loadScript(const std::string& script, bool file)
 		result = m_interface->loadBuffer(buffer);
 	}
 	else
+	{
 		result = m_interface->loadFile(script);
+	}
 
 	if(!result)
 	{
