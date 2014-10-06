@@ -1,24 +1,10 @@
-////////////////////////////////////////////////////////////////////////
-// OpenTibia - an opensource roleplaying game
-////////////////////////////////////////////////////////////////////////
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////
+// OpenTibia - an opensource roleplaying game  //
+/////////////////////////////////////////////////
 
 #ifndef __BASEEVENTS__
 #define __BASEEVENTS__
 #include "otsystem.h"
-
 #include "luascript.h"
 #include <libxml/parser.h>
 
@@ -57,8 +43,7 @@ enum EventScript_t
 class Event
 {
 	public:
-		Event(LuaInterface* _interface): m_interface(_interface),
-			m_scripted(EVENT_SCRIPT_FALSE), m_scriptId(0) {}
+		Event(LuaInterface* _interface): m_interface(_interface), m_scripted(EVENT_SCRIPT_FALSE), m_scriptId(0) {}
 		Event(const Event* copy);
 		virtual ~Event() {}
 
@@ -99,4 +84,5 @@ class CallBack
 		bool m_loaded;
 		std::string m_callbackName;
 };
+
 #endif
