@@ -9,9 +9,11 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  */
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+ */
 
 #include "otpch.h"
+
 #include "const.h"
 
 #include "actions.h"
@@ -70,7 +72,6 @@ void Actions::clear()
 	clearMap(actionItemMap);
 
 	m_interface.reInitState();
-
 	delete defaultAction;
 	defaultAction = NULL;
 }
@@ -107,7 +108,7 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 		}
 		else
 		{
-			std::cout << "[Erro: data/actions] Você não pode definir mais de uma ACTION padrão." << std::endl;
+			std::cout << "[Erro: data/actions] Voce nao pode definir mais de uma ACTION padrao." << std::endl;
 		}
 
 		return true;
@@ -517,91 +518,41 @@ ReturnValue Actions::internalUseItem(Player* player, const Position& pos, uint8_
 	Action* action = NULL;
 	if((action = getAction(item, ACTION_UNIQUEID)))
 	{
-		if(action->isScripted())
+		if(executeUse(action, player, item, posEx, creatureId))
 		{
-			if(executeUse(action, player, item, posEx, creatureId))
-			{
-				return RET_NOERROR;
-			}
-		}
-		else if(action->function)
-		{
-			if(action->function(player, item, posEx, posEx, false, creatureId))
-			{
-				return RET_NOERROR;
-			}
+			return RET_NOERROR;
 		}
 	}
 
 	if((action = getAction(item, ACTION_ACTIONID)))
 	{
-		if(action->isScripted())
+		if(executeUse(action, player, item, posEx, creatureId))
 		{
-			if(executeUse(action, player, item, posEx, creatureId))
-			{
-				return RET_NOERROR;
-			}
-		}
-		else if(action->function)
-		{
-			if(action->function(player, item, posEx, posEx, false, creatureId))
-			{
-				return RET_NOERROR;
-			}
+			return RET_NOERROR;
 		}
 	}
 
 	if((action = getAction(item, ACTION_ITEMID)))
 	{
-		if(action->isScripted())
+		if(executeUse(action, player, item, posEx, creatureId))
 		{
-			if(executeUse(action, player, item, posEx, creatureId))
-			{
-				return RET_NOERROR;
-			}
-		}
-		else if(action->function)
-		{
-			if(action->function(player, item, posEx, posEx, false, creatureId))
-			{
-				return RET_NOERROR;
-			}
+			return RET_NOERROR;
 		}
 	}
 
 	if((action = getAction(item, ACTION_RUNEID)))
 	{
-		if(action->isScripted())
+		if(executeUse(action, player, item, posEx, creatureId))
 		{
-			if(executeUse(action, player, item, posEx, creatureId))
-			{
-				return RET_NOERROR;
-			}
-		}
-		else if(action->function)
-		{
-			if(action->function(player, item, posEx, posEx, false, creatureId))
-			{
-				return RET_NOERROR;
-			}
+			return RET_NOERROR;
 		}
 	}
 
 	if(defaultAction)
 	{
-		if(defaultAction->isScripted())
+		if(executeUse(defaultAction, player, item, posEx, creatureId))
 		{
-			if(executeUse(defaultAction, player, item, posEx, creatureId))
-			{
-				return RET_NOERROR;
-			}
-		}
-		else if(defaultAction->function)
-		{
-			if(defaultAction->function(player, item, posEx, posEx, false, creatureId))
-			{
-				return RET_NOERROR;
-			}
+			return RET_NOERROR;
 		}
 	}
 
@@ -671,6 +622,25 @@ ReturnValue Actions::internalUseItem(Player* player, const Position& pos, uint8_
 			player->sendTextWindow(item, 0, false);
 		}
 
+		return RET_NOERROR;
+	}
+
+	const ItemType& it = Item::items[item->getID()];
+	if(it.transformUseTo)
+	{
+		g_game.transformItem(item, it.transformUseTo);
+		g_game.startDecay(item);
+		return RET_NOERROR;
+	}
+
+	if(item->isPremiumScroll())
+	{
+		std::stringstream ss;
+		ss << " You have recived " << it.premiumDays << " premium days.";
+		player->sendTextMessage(MSG_INFO_DESCR, ss.str());
+
+		player->addPremiumDays(it.premiumDays);
+		g_game.internalRemoveItem(NULL, item, 1);
 		return RET_NOERROR;
 	}
 
@@ -852,53 +822,13 @@ bool Action::configureEvent(xmlNodePtr p)
 	return true;
 }
 
-bool Action::loadFunction(const std::string& functionName)
-{
-	std::string tmpFunctionName = asLowerCaseString(functionName);
-	if(tmpFunctionName == "increaseitemid")
-	{
-		function = increaseItemId;
-	}
-	else if(tmpFunctionName == "decreaseitemid")
-	{
-		function = decreaseItemId;
-	}
-	else
-	{
-		std::clog << "[Erro: Actions-Functions] Function \"" << functionName << "\" nao existe." << std::endl;
-		return false;
-	}
-
-	m_scripted = EVENT_SCRIPT_FALSE;
-	return true;
-}
-
-bool Action::increaseItemId(Player* player, Item* item, const PositionEx&, const PositionEx&, bool, uint32_t)
-{
-	if(!player || !item)
-	{
-		return false;
-	}
-
-	g_game.transformItem(item, item->getID() + 1);
-	g_game.startDecay(item);
-	return true;
-}
-
-bool Action::decreaseItemId(Player* player, Item* item, const PositionEx&, const PositionEx&, bool, uint32_t)
-{
-	if(!player || !item)
-	{
-		return false;
-	}
-
-	g_game.transformItem(item, item->getID() - 1);
-	g_game.startDecay(item);
-	return true;
-}
-
 ReturnValue Action::canExecuteAction(const Player* player, const Position& toPos)
 {
+	if(player->hasCustomFlag(PlayerCustomFlag_CanUseFar))
+	{
+		return RET_NOERROR;
+	}
+	
 	if(!getAllowFarUse())
 	{
 		return g_actions->canUse(player, toPos);
@@ -934,7 +864,10 @@ bool Action::executeUse(Player* player, Item* item, const PositionEx& fromPos, c
 				env->streamPosition(scriptstream, "toPosition", PositionEx());
 			}
 
-			scriptstream << m_scriptData;
+			if(m_scriptData)
+			{
+				scriptstream << *m_scriptData;
+			}
 
 			bool result = true;
 			if(m_interface->loadBuffer(scriptstream.str()))
