@@ -36,7 +36,7 @@ typedef std::map<std::string, Character> Characters;
 
 #endif
 
-class Account 
+class Account
 {
 	public:
 		Account() {premiumDays = warnings = number = lastDay = 0;}
