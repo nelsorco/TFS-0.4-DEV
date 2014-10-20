@@ -917,7 +917,6 @@ bool Action::executeUse(Player* player, Item* item, const PositionEx& fromPos, c
 	else
 	{
 		std::clog << "[Erro: Action] Sobrecarga na execucao da function." << std::endl;
-
 		return false;
 	}
 }
