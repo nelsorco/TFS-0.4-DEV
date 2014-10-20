@@ -9,7 +9,8 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  */
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+ */
 
 #ifndef __ACTIONS__
 #define __ACTIONS__
@@ -42,7 +43,7 @@ class Actions : public BaseEvents
 		ReturnValue canUse(const Player* player, const Position& pos);
 		ReturnValue canUse(const Player* player, const Position& pos, const Item* item);
 		ReturnValue canUseFar(const Creature* creature, const Position& toPos, bool checkLineOfSight);
-		bool hasAction(const Item* item) const {return getAction(item);}
+		bool hasAction(const Item* item) const {return getAction(item, ACTION_ANY) != NULL;}
 
 	protected:
 		Action* defaultAction;
@@ -69,12 +70,10 @@ class Actions : public BaseEvents
 		ReturnValue internalUseItem(Player* player, const Position& pos, uint8_t index, Item* item, uint32_t creatureId);
 		bool executeUseEx(Action* action, Player* player, Item* item, const PositionEx& fromPosEx, const PositionEx& toPosEx, bool isHotkey, uint32_t creatureId);
 		ReturnValue internalUseItemEx(Player* player, const PositionEx& fromPosEx, const PositionEx& toPosEx, Item* item, bool isHotkey, uint32_t creatureId);
-		
-		Action* getAction(const Item* item, ActionType_t type = ACTION_ANY) const;
+	
+		Action* getAction(const Item* item, ActionType_t type) const;
 		void clearMap(ActionUseMap& map);
 };
-
-typedef bool (ActionFunction)(Player* player, Item* item, const PositionEx& posFrom, const PositionEx& posTo, bool extendedUse, uint32_t creatureId);
 
 class Action : public Event
 {
@@ -98,14 +97,9 @@ class Action : public Event
 		virtual ReturnValue canExecuteAction(const Player* player, const Position& toPos);
 		virtual bool hasOwnErrorHandler() {return false;}
 
-		ActionFunction* function;
-
 	protected:
 		virtual std::string getScriptEventName() const {return "onUse";}
 		virtual std::string getScriptEventParams() const {return "cid, item, fromPosition, itemEx, toPosition";}
-
-		static ActionFunction increaseItemId;
-		static ActionFunction decreaseItemId;
 
 		bool allowFarUse;
 		bool checkLineOfSight;
