@@ -9,7 +9,8 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  */
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+ */
 
 #ifndef __ACCOUNT__
 #define __ACCOUNT__
@@ -36,7 +37,7 @@ typedef std::map<std::string, Character> Characters;
 
 #endif
 
-class Account
+class Account 
 {
 	public:
 		Account() {premiumDays = warnings = number = lastDay = 0;}
