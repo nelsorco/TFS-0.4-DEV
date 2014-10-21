@@ -157,6 +157,8 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 					delete useItemMap[intVector[i]];
 				}
 			}
+			
+
 			useItemMap[intVector[i]] = new Action(action);
 		}
 	}
@@ -184,6 +186,7 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 							delete useItemMap[intVector[i]];
 						}
 					}
+
 					useItemMap[intVector[i]++] = new Action(action);
 				}
 			}
@@ -235,6 +238,7 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 					delete uniqueItemMap[intVector[i]];
 				}
 			}
+
 			uniqueItemMap[intVector[i]] = new Action(action);
 		}
 	}
@@ -262,6 +266,7 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 							delete uniqueItemMap[intVector[i]];
 						}
 					}
+
 					uniqueItemMap[intVector[i]++] = new Action(action);
 				}
 			}
@@ -313,6 +318,7 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 					delete actionItemMap[intVector[i]];
 				}
 			}
+
 			actionItemMap[intVector[i]] = new Action(action);
 		}
 	}
@@ -340,6 +346,7 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 							delete actionItemMap[intVector[i]];
 						}
 					}
+
 					actionItemMap[intVector[i]++] = new Action(action);
 				}
 			}
@@ -349,6 +356,7 @@ bool Actions::registerEvent(Event* event, xmlNodePtr p, bool override)
 			std::clog << "[Erro: data/actions] Entrada mal formada (de action: \"" << strValue << "\", para action: \"" << endValue << "\")" << std::endl;
 		}
 	}
+
 	return success;
 }
 
@@ -388,7 +396,7 @@ ReturnValue Actions::canUse(const Player* player, const Position& pos)
 	return RET_NOERROR;
 }
 
-ReturnValue Actions::canUse(const Player* player, const Position& pos, const Item* item)
+ReturnValue Actions::canUseEx(const Player* player, const Position& pos, const Item* item)
 {
 	Action* action = NULL;
 	
@@ -581,12 +589,11 @@ ReturnValue Actions::internalUseItem(Player* player, const Position& pos, uint8_
 				return RET_CANNOTUSETHISOBJECT;
 			}
 
-			if(Depot* playerDepot = player->getDepot(depot->getDepotId(), true))
-			{
-				player->useDepot(depot->getDepotId(), true);
-				playerDepot->setParent(depot->getParent());
-				tmpContainer = playerDepot;
-			}
+			DepotLocker* myDepotLocker = player->getDepotLocker(depot->getDepotId());
+			myDepotLocker->setParent(depot->getParent());
+			tmpContainer = myDepotLocker;
+			player->setDepotChange(true);
+			player->setLastDepotId(depot->getDepotId());
 		}
 
 		if(!tmpContainer)
@@ -767,12 +774,6 @@ bool Actions::useItemEx(Player* player, const Position& fromPos, const Position&
 	player->stopWalk();
 	player->setNextAction(OTSYS_TIME() + g_config.getNumber(ConfigManager::EX_ACTIONS_DELAY_INTERVAL) - 10);
 
-	if(!getAction(item))
-	{
-		player->sendCancelMessage(RET_CANNOTUSETHISOBJECT);
-		return false;
-	}
-
 	int32_t fromStackPos = 0;
 	if(item->getParent())
 	{
@@ -822,7 +823,7 @@ bool Action::configureEvent(xmlNodePtr p)
 	return true;
 }
 
-ReturnValue Action::canExecuteAction(const Player* player, const Position& toPos)
+ReturnValue Action::canExecuteAction(const Player* player, const Position& pos)
 {
 	if(player->hasCustomFlag(PlayerCustomFlag_CanUseFar))
 	{
@@ -831,10 +832,10 @@ ReturnValue Action::canExecuteAction(const Player* player, const Position& toPos
 	
 	if(!getAllowFarUse())
 	{
-		return g_actions->canUse(player, toPos);
+		return g_actions->canUse(player, pos);
 	}
 
-	return g_actions->canUseFar(player, toPos, getCheckLineOfSight());
+	return g_actions->canUseFar(player, pos, getCheckLineOfSight());
 }
 
 bool Action::executeUse(Player* player, Item* item, const PositionEx& fromPos, const PositionEx& toPos, bool extendedUse, uint32_t)
