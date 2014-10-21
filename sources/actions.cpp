@@ -501,7 +501,8 @@ Action* Actions::getAction(const Item* item, ActionType_t type) const
 	return NULL;
 }
 
-bool Actions::executeUse(Action* action, Player* player, Item* item, const PositionEx& posEx, uint32_t creatureId)
+bool Actions::executeUse(Action* action, Player* player, Item* item, 
+	const PositionEx& posEx, uint32_t creatureId)
 {
 	return action->executeUse(player, item, posEx, posEx, false, creatureId);
 }
@@ -588,12 +589,12 @@ ReturnValue Actions::internalUseItem(Player* player, const Position& pos, uint8_
 			{
 				return RET_CANNOTUSETHISOBJECT;
 			}
-
-			DepotLocker* myDepotLocker = player->getDepotLocker(depot->getDepotId());
-			myDepotLocker->setParent(depot->getParent());
-			tmpContainer = myDepotLocker;
-			player->setDepotChange(true);
-			player->setLastDepotId(depot->getDepotId());
+			if(Depot* playerDepot = player->getDepot(depot->getDepotId(), true))
+			{
+				player->useDepot(depot->getDepotId(), true);
+				playerDepot->setParent(depot->getParent());
+				tmpContainer = playerDepot;
+			}
 		}
 
 		if(!tmpContainer)
@@ -675,13 +676,16 @@ bool Actions::useItem(Player* player, const Position& pos, uint8_t index, Item* 
 	return false;
 }
 
-bool Actions::executeUseEx(Action* action, Player* player, Item* item, const PositionEx& fromPosEx, const PositionEx& toPosEx, bool isHotkey, uint32_t creatureId)
+bool Actions::executeUseEx(Action* action, Player* player, Item* item,
+	const PositionEx& fromPosEx, const PositionEx& toPosEx, bool isHotkey, uint32_t creatureId)
 {
-	return (action->executeUse(player, item, fromPosEx, toPosEx, isHotkey, creatureId) || action->hasOwnErrorHandler());
+	return (action->executeUse(player, item, fromPosEx, toPosEx, isHotkey,
+		creatureId) || action->hasOwnErrorHandler());
 
 }
 
-ReturnValue Actions::internalUseItemEx(Player* player, const PositionEx& fromPosEx, const PositionEx& toPosEx, Item* item, bool isHotkey, uint32_t creatureId)
+ReturnValue Actions::internalUseItemEx(Player* player, const PositionEx& fromPosEx, 
+	const PositionEx& toPosEx, Item* item, bool isHotkey, uint32_t creatureId)
 {
 	Action* action = NULL;
 	if((action = getAction(item, ACTION_UNIQUEID)))
@@ -763,7 +767,8 @@ ReturnValue Actions::internalUseItemEx(Player* player, const PositionEx& fromPos
 	return RET_CANNOTUSETHISOBJECT;
 }
 
-bool Actions::useItemEx(Player* player, const Position& fromPos, const Position& toPos, uint8_t toStackPos, Item* item, bool isHotkey, uint32_t creatureId/* = 0*/)
+bool Actions::useItemEx(Player* player, const Position& fromPos, const Position& toPos, 
+	uint8_t toStackPos, Item* item, bool isHotkey, uint32_t creatureId/* = 0*/)
 {
 	if(!player->canDoAction())
 	{
